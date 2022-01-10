@@ -1,0 +1,6 @@
+{
+    "augmentor": "augs.default",
+    "rounds": 2,
+    "batch_sz": 6,
+    "pool_sz": 3
+}
