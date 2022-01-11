@@ -92,10 +92,20 @@ def annotate(bbox_dict, evt_state, frame):
         cv2.LINE_AA,
     )
 
+
+def clamp(x, l, u):
+    return max(l, min(u, x))
+
+
 def process(frame, result):
     bbox_dict = {}
+    h, w = frame.shape[:2]
     for bbox in result:
         x1, y1, x2, y2 = list(map(int, bbox[:-2]))
+        x1 = clamp(x1, 0, w)
+        y1 = clamp(y1, 0, h)
+        x2 = clamp(x2, 0, w)
+        y2 = clamp(y2, 0, h)
         area = (x2 - x1) * (y2 - y1)
         score, class_ = bbox[-2:]
         bbox_dict.setdefault(class_, [])
@@ -110,7 +120,9 @@ def main(FLAGS):
     url = f"http://localhost:8080/predictions/{FLAGS.model}"
     evt_man = EventManager()
 
-    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+    if FLAGS.source == "0":
+        FLAGS.source = 0
+    cap = cv2.VideoCapture(FLAGS.source)
     cap.set(cv2.CAP_PROP_BUFFERSIZE, 3)
 
     while cap.isOpened():
@@ -137,6 +149,7 @@ def main(FLAGS):
 def parse_flags():
     parser = ArgumentParser()
     parser.add_argument("--model", type=str, default="yolov5_exp_1")
+    parser.add_argument("--source", type=str, default="0")
     parser.add_argument("--seq_size", type=int, default=4)
     return parser.parse_args()
 
