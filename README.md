@@ -92,3 +92,5 @@ A common setup involves spinning up the serving container with the saved model, 
 
 ### Inference
 Inference and event detection logic can be coded as independent components. Our requirements involve straightforward OpenCV applications to detect such events using bounding boxes detected from the model. To stay within real-time latencies, the codebase needs to be *lightweight* and often libraries like __numpy__ and __multiprocessing__ is used to speed up this part of the pipeline.
+
+---
