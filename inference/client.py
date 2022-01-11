@@ -3,7 +3,9 @@ import requests
 import numpy as np
 from cv2 import cv2
 from argparse import ArgumentParser
-from collections import deque
+
+from libs.state import get_state
+from libs.event import EventManager
 
 COLORS = {0: "blue", 1: "green", 2: "red"}
 LIGHT_CLASS = 0
@@ -11,8 +13,8 @@ BAT_CLASS = 1
 
 
 def detect_color(frame, bbox):
-    x1, x2, y1, y2 = bbox[:4]
-    roi = frame[x1:x2, y1:y2]
+    x1, y1, x2, y2 = bbox[:4]
+    roi = frame[y1:y2, x1:x2]
     bgr_means = [np.mean(roi[:, :, 0]), np.mean(roi[:, :, 1]), np.mean(roi[:, :, 2])]
     index_max = int(max(range(3), key=bgr_means.__getitem__))
     return COLORS[index_max]
@@ -63,7 +65,7 @@ def clean_light_bboxes(bbox_dict, frame):
         bbox_dict.setdefault(color, []).append(bbox)
 
 
-def annotate(bbox_dict, frame):
+def annotate(bbox_dict, evt_state, frame):
     for class_, bboxes in bbox_dict.items():
         for bbox in bboxes:
             x1, y1, x2, y2 = bbox[:4]
@@ -79,7 +81,16 @@ def annotate(bbox_dict, frame):
                 1,
                 cv2.LINE_AA,
             )
-
+    cv2.putText(
+        frame,
+        evt_state.value,
+        (15, 15),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.5,
+        (255, 255, 255),
+        1,
+        cv2.LINE_AA,
+    )
 
 def process(frame, result):
     bbox_dict = {}
@@ -92,12 +103,12 @@ def process(frame, result):
 
     clean_bat_bboxes(bbox_dict)
     clean_light_bboxes(bbox_dict, frame)
-    annotate(bbox_dict, frame)
+    return bbox_dict
 
 
 def main(FLAGS):
     url = f"http://localhost:8080/predictions/{FLAGS.model}"
-    _ = deque(maxlen=FLAGS.seq_size)
+    evt_man = EventManager()
 
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
     cap.set(cv2.CAP_PROP_BUFFERSIZE, 3)
@@ -109,7 +120,11 @@ def main(FLAGS):
 
         content = prepare(frame)
         resp = fire(url, content)
-        process(frame, resp)
+        bbox_dict = process(frame, resp)
+        evt_man.append(get_state(bbox_dict))
+        evt_state = evt_man.get_event_state()
+
+        annotate(bbox_dict, evt_state, frame)
 
         cv2.imshow(str("Inference"), frame)
         if cv2.waitKey(1) == ord("q"):
