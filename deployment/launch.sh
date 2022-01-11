@@ -1,6 +1,6 @@
 #!/bin/bash
 
-WARMUM_REQUESTS=20
+WARMUP_REQUESTS=20
 RESOURCES_VOL="/home/resources"
 MODEL_PATH=${RESOURCES_VOL}/best.torchscript
 HANDLER_PATH=${RESOURCES_VOL}/ts_handler.py
@@ -18,10 +18,12 @@ echo "Exported the model. Starting server ..."
 torchserve --start --model-store model-store --models yolov5_exp_1.mar  --ts-config config.properties
 sleep 2
 
-for i in {1..$WARMUM_REQUESTS}
+for ((i=1; i<=$WARMUP_REQUESTS; i++))
 do
     curl http://localhost:8080/predictions/yolov5_exp_1 -F "body=@/home/resources/warmup.jpg"
     echo "warmup num: ${i}"
 done
+
+echo "Warmup runs completed."
 
 tail -f /dev/null
