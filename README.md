@@ -1,4 +1,7 @@
 # real-time-video-analytics-recipe
+
+<img src="extras/result.gif" width=200px height=180px alt="end result demo">
+
 This repo addresses a simplified use-case of event detection in videos using computer vision and deep learning. This recipe can easily be scaled up and extended to address more complex scenarios. 
 
 <details open>
@@ -12,7 +15,9 @@ Let's consider a minimal yet common scenario where one would like to detect cert
 ---
 
 ### The Plot
-Almost all of us have encountered and hated mosquitoes at least once in our lifespan. Mosquito bats :tennis: are effective at the job they do and we will be tackling the problem of detecting certain toy events with this rather *odd* object :rofl:.
+Almost all of us have encountered and hated mosquitos at least once in our lifespan. Mosquito bats :tennis: are effective at the job they do and we will be tackling the problem of detecting certain toy events with this rather *odd* object :rofl:.
+
+<img src="extras/mbat.jpg" width=100px height=140px alt="mosquito bat">
 
 ### Events
 - __Swatting mode__ : There's a button on the side of the bat, which when pressed puts the bat into swatting mode and additionally lights a tiny red LED that indicates the same.
@@ -54,6 +59,11 @@ We can now list the steps needed as follows:
 - Inference
    - Pre and post processing
    - End-to-End tests
+
+<p align="center">
+<img src="extras/flow.jpg" width=360px height=256px alt="pipeline flowchat">
+</p>
+
 ---
 </details>
 
@@ -94,3 +104,13 @@ A common setup involves spinning up the serving container with the saved model, 
 Inference and event detection logic can be coded as independent components. Our requirements involve straightforward OpenCV applications to detect such events using bounding boxes detected from the model. To stay within real-time latencies, the codebase needs to be *lightweight* and often libraries like __numpy__ and __multiprocessing__ is used to speed up this part of the pipeline.
 
 ---
+</details>
+<br>
+
+This recipe was centered around object detection, but it can easily be swapped / ensembled with other models, all depending on the problem one needs to tackle. With this simple yet effective design, a quick prototype model can be deployed and indeed scaled up to real systems wherein one would containerize the components that we had in this recipe and slap more features on it.
+
+## Contributing
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+
+## License
+[Standard MIT](https://choosealicense.com/licenses/mit/)

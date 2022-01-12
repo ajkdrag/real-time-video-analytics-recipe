@@ -124,12 +124,23 @@ def main(FLAGS):
         FLAGS.source = 0
     cap = cv2.VideoCapture(FLAGS.source)
     cap.set(cv2.CAP_PROP_BUFFERSIZE, 3)
+    _, frame = cap.read()
+    print(frame.shape)
+    fourcc = cv2.VideoWriter_fourcc(*"XVID")
+    if FLAGS.save:
+        out = cv2.VideoWriter(
+            FLAGS.target,
+            fourcc,
+            cap.get(cv2.CAP_PROP_FPS),
+            (frame.shape[1], frame.shape[0]),
+        )
 
     while cap.isOpened():
         status, frame = cap.read()
         if not status:
             break
 
+        frame = cv2.flip(frame, 1)
         content = prepare(frame)
         resp = fire(url, content)
         bbox_dict = process(frame, resp)
@@ -139,18 +150,24 @@ def main(FLAGS):
         annotate(bbox_dict, evt_state, frame)
 
         cv2.imshow(str("Inference"), frame)
+        if FLAGS.save:
+            out.write(frame)
         if cv2.waitKey(1) == ord("q"):
-            cv2.destroyAllWindows()
             break
 
     cap.release()
+    if FLAGS.save:
+        out.release()
+    cv2.destroyAllWindows()
 
 
 def parse_flags():
     parser = ArgumentParser()
     parser.add_argument("--model", type=str, default="yolov5_exp_1")
     parser.add_argument("--source", type=str, default="0")
+    parser.add_argument("--target", type=str, default="out.avi")
     parser.add_argument("--seq_size", type=int, default=4)
+    parser.add_argument("--save", action="store_true", default=False)
     return parser.parse_args()
 
 
