@@ -59,10 +59,10 @@ We can now list the steps needed as follows:
 - Inference
    - Pre and post processing
    - End-to-End tests
+- Explainability (Optional)
+   - SHAP / LIME
 
-<p align="center">
 <img src="extras/flow.jpg" width=360px height=256px alt="pipeline flowchat">
-</p>
 
 ---
 </details>
@@ -91,7 +91,7 @@ I went with the PyTorch implementation of [YOLOV5](https://github.com/ultralytic
 - __Create a baseline model__ : For this, fine tuning with a small network such as YOLOV5 nano (pretrained on COCO dataset) works well.
 - __Train from scratch__ : Before diving into optimization world, training from scratch is smarter (given adequate compute).
 - __More data__ : Deep networks are hungry for more data as they quickly overfit (especially small sized custom datasets). Often, annotating is a pain, so one can use augmentations or GANs to generate more data.
-- __Strong validation set__ : A bad validation set can stray you off from a performant model. It need not be the 80-20 split, but a carefully created validation set go a long way.
+- __Strong validation set__ : A bad validation set can stray you off from a performant model. It need not be the 80-20 split, but a carefully created validation set goes a long way.
 - __Hyperparameter tuning__ : Last but not the least, good hyperparameters help squeeze out better metrics. In our case, since the dataset is small and we were training on relatively small sized networks, toning down on the online augmentations and scaling helped. Also, because of small objects in our dataset, training on slightly higher resolutions help. In my case, training was done one 640x640 (original was 640x360).
 - __Evaluation__ : Mean Average Precision (mAP) is the standard metric of choice for Object Detection models.
 
@@ -102,6 +102,12 @@ A common setup involves spinning up the serving container with the saved model, 
 
 ### Inference
 Inference and event detection logic can be coded as independent components. Our requirements involve straightforward OpenCV applications to detect such events using bounding boxes detected from the model. To stay within real-time latencies, the codebase needs to be *lightweight* and often libraries like __numpy__ and __multiprocessing__ is used to speed up this part of the pipeline.
+
+### Explainability
+For general image classfication, torchserve has Captum integrations, but for object detection, there's nothing out of the box. __SHAP__ has **KernelExplainer** that is model agnostic and that's what I ended up using. A very convenient reference with YoloV5 can be found out at this [blog](https://www.steadforce.com/blog/explainable-object-detection) 
+
+<img src="extras/shap.jpg" width=100px height=140px alt="pipeline flowchat">
+
 
 ---
 </details>
