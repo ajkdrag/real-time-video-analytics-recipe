@@ -5,8 +5,6 @@ import numpy as np
 from cv2 import cv2
 from ts.torch_handler.base_handler import BaseHandler
 
-IMG_SZ = 640
-
 
 class ModelHandler(BaseHandler):
     """
@@ -18,13 +16,18 @@ class ModelHandler(BaseHandler):
         self._context = None
         self.initialized = False
         self.batch_size = 1
+        self.inference_img_sz = [640, 640]
+        self.explain_img_sz = [160, 160]
 
     def preprocess(self, request_data):
         try:
             nparr = np.asarray(bytearray(request_data[0]["body"]), dtype=np.uint8)
             decoded = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             self.og_shape = decoded.shape[:2]
-            resized, _, _ = letterbox(decoded, (IMG_SZ, IMG_SZ), auto=False)
+            img_sz = (
+                self.explain_img_sz if self._is_explain() else self.inference_img_sz
+            )
+            resized, _, _ = letterbox(decoded, img_sz, auto=False)
             img = resized[:, :, ::-1].transpose(2, 0, 1)
             img = np.ascontiguousarray(img)
             img = img.astype(np.float32) / 255.0
@@ -32,9 +35,12 @@ class ModelHandler(BaseHandler):
         except Exception as exc:
             print(exc)
 
-    def postprocess(self, inference_output):
+    def postprocess(self, inference_output, explain=False):
         postprocess_output = inference_output[0]
-        pred = non_max_suppression(postprocess_output, self.og_shape, conf_thres=0.2)
+        img_sz = self.explain_img_sz if explain else self.inference_img_sz
+        pred = non_max_suppression(
+            postprocess_output, self.og_shape, img_sz, conf_thres=0.2
+        )
         pred = [p.tolist() for p in pred]
         return [pred]
 
@@ -81,7 +87,7 @@ def letterbox(
 
 
 def non_max_suppression(
-    prediction, og_shape, conf_thres=0.5, iou_thres=0.6, agnostic=False
+    prediction, og_shape, resized_shape, conf_thres=0.5, iou_thres=0.6, agnostic=False
 ):
     """
     Performs Non-Maximum Suppression (NMS) on inference results
@@ -124,7 +130,7 @@ def non_max_suppression(
         x[:, 5:] *= x[:, 4:5]  # conf = obj_conf * cls_conf
 
         # Box (center x, center y, width, height) to (x1, y1, x2, y2).
-        box = xywh2xyxy(*og_shape, x[:, :4])
+        box = xywh2xyxy(*og_shape, *resized_shape, x[:, :4])
 
         # Detections matrix nx6 (xyxy, conf, cls).
         if multi_label:
@@ -162,19 +168,19 @@ def non_max_suppression(
     return output
 
 
-def xywh2xyxy(origin_h, origin_w, x):
+def xywh2xyxy(origin_h, origin_w, rsz_h, rsz_w, x):
     y = torch.zeros_like(x)
-    r_w = IMG_SZ / origin_w
-    r_h = IMG_SZ / origin_h
+    r_w = rsz_w / origin_w
+    r_h = rsz_h / origin_h
     if r_h > r_w:
         y[:, 0] = x[:, 0] - x[:, 2] / 2
         y[:, 2] = x[:, 0] + x[:, 2] / 2
-        y[:, 1] = x[:, 1] - x[:, 3] / 2 - (IMG_SZ - r_w * origin_h) / 2
-        y[:, 3] = x[:, 1] + x[:, 3] / 2 - (IMG_SZ - r_w * origin_h) / 2
+        y[:, 1] = x[:, 1] - x[:, 3] / 2 - (rsz_h - r_w * origin_h) / 2
+        y[:, 3] = x[:, 1] + x[:, 3] / 2 - (rsz_h - r_w * origin_h) / 2
         y /= r_w
     else:
-        y[:, 0] = x[:, 0] - x[:, 2] / 2 - (IMG_SZ - r_h * origin_w) / 2
-        y[:, 2] = x[:, 0] + x[:, 2] / 2 - (IMG_SZ - r_h * origin_w) / 2
+        y[:, 0] = x[:, 0] - x[:, 2] / 2 - (rsz_w - r_h * origin_w) / 2
+        y[:, 2] = x[:, 0] + x[:, 2] / 2 - (rsz_w - r_h * origin_w) / 2
         y[:, 1] = x[:, 1] - x[:, 3] / 2
         y[:, 3] = x[:, 1] + x[:, 3] / 2
         y /= r_h

@@ -9,7 +9,7 @@ BATCH_SZ=2
 EPOCHS=50
 NET="yolov5s.pt"
 
-cd yolov5
+cd yolov5_torch
 python train.py --epochs ${EPOCHS} \
     --data ${DATA} \
     --img-size ${IMG_SZ} \
